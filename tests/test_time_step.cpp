@@ -40,3 +40,30 @@ TEST_CASE("simulated time does not drift from real time") {
     CHECK(total >= 419);
     CHECK(total <= 420);
 }
+
+TEST_CASE("a huge stall is clamped to max_steps_per_frame") {
+    FixedTimestep ts;                        // max_steps_per_frame == 5
+    CHECK(ts.accumulate(10.0) == 5);
+}
+
+TEST_CASE("after a clamped stall the accumulator is drained, not still full") {
+    FixedTimestep ts;
+    ts.accumulate(10.0);
+    CHECK(ts.accumulator < ts.step_seconds);
+    CHECK(ts.accumulate(kStep) == 1);        // back to normal immediately
+}
+
+TEST_CASE("zero and negative elapsed time are harmless") {
+    FixedTimestep ts;
+    CHECK(ts.accumulate(0.0) == 0);
+    CHECK(ts.accumulate(-1.0) == 0);
+    CHECK(ts.accumulator >= 0.0);
+}
+
+TEST_CASE("alpha reports progress toward the next step") {
+    FixedTimestep ts;
+    ts.accumulate(kStep * 0.25);
+    CHECK(ts.alpha() == doctest::Approx(0.25));
+    CHECK(ts.alpha() >= 0.0);
+    CHECK(ts.alpha() < 1.0);
+}
