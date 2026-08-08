@@ -1,0 +1,32 @@
+# Normalise line endings so the Windows machine and the macOS clone used for
+# iOS builds (spec Milestone 7) agree on file contents.
+* text=auto
+
+# Sources and build files: LF in the repository, native in the working copy.
+*.c      text
+*.cpp    text
+*.h      text
+*.hpp    text
+*.txt    text
+*.cmake  text
+*.json   text
+*.md     text
+*.yml    text
+*.yaml   text
+*.ts     text
+
+# Shell scripts must stay LF or they break on macOS.
+*.sh     text eol=lf
+
+# Windows batch files must stay CRLF.
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+
+# Binary assets: never convert, never diff as text.
+*.png    binary
+*.jpg    binary
+*.ogg    binary
+*.wav    binary
+*.mp3    binary
+*.ttf    binary
+*.otf    binary

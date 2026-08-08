@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# TapWing — C++20 / SDL3 / CMake
+# ---------------------------------------------------------------------------
+
+# --- Build output ---------------------------------------------------------
+/build/
+/out/
+/bin/
+/lib/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
+Testing/
+_deps/
+compile_commands.json
+
+# CMakePresets.json IS tracked (it is how a fresh clone builds).
+# CMakeUserPresets.json is per-developer and must not be.
+CMakeUserPresets.json
+
+# --- Compiled objects and binaries ---------------------------------------
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.gch
+*.pch
+
+# --- MSVC / Visual Studio -------------------------------------------------
+.vs/
+*.user
+*.suo
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+[Dd]ebug/
+[Rr]elease/
+[Xx]64/
+[Xx]86/
+
+# --- Editors --------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Operating system -----------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Android (Milestone 2) ------------------------------------------------
+platform/android/.gradle/
+platform/android/build/
+platform/android/**/build/
+platform/android/local.properties
+platform/android/.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# --- iOS / Xcode (Milestone 7) -------------------------------------------
+platform/ios/build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# --- Server / Nakama (Milestone 6) ---------------------------------------
+server/nakama/data/
+node_modules/
+*.tsbuildinfo
+
+# --- Secrets: never commit -----------------------------------------------
+.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+secrets.json
+
+# --- Local docs and agent tooling: kept on disk, out of the repo ---------
+docs/
+.claude/
+.superpowers/
+CLAUDE.md
+AGENTS.md
