@@ -1,32 +1,29 @@
 #include <SFML/Graphics.hpp>
 
-#include <iostream>
+#include <cstdint>
 #include <optional>
 
 #include "app/time_step.h"
+#include "gameplay/collision.h"
+#include "gameplay/gate_field.h"
+#include "gameplay/player.h"
+#include "gameplay/tuning.h"
 
 namespace {
-constexpr unsigned kRefWidth    = 1080;  // spec 5.2 reference resolution
-constexpr unsigned kRefHeight   = 1920;
-constexpr unsigned kWindowScale = 3;     // a 360 x 640 window on the desktop
 
-// SFML has no one-call letterbox, so we compute the viewport ourselves.
-// A viewport is expressed as a fraction of the window, not in pixels: we want
-// the largest 9:16 rectangle that fits, centred, with bars filling the rest.
+constexpr unsigned kWindowScale = 3;
+constexpr std::uint32_t kSeed = 20260808u;  // fixed: same course every run
+
 sf::View letterboxed(sf::View view, sf::Vector2u window_size) {
-    const float window_ratio = static_cast<float>(window_size.x) /
-                               static_cast<float>(window_size.y);
+    const float window_ratio = static_cast<float>(window_size.x) / static_cast<float>(window_size.y);
     const float view_ratio = view.getSize().x / view.getSize().y;
 
-    float width  = 1.0f;
-    float height = 1.0f;
-    float left   = 0.0f;
-    float top    = 0.0f;
+    float width = 1.0f, height = 1.0f, left = 0.0f, top = 0.0f;
 
-    if (window_ratio > view_ratio) {  // window too wide: bars left and right
+    if (window_ratio > view_ratio) {
         width = view_ratio / window_ratio;
         left  = (1.0f - width) / 2.0f;
-    } else {                          // window too tall: bars top and bottom
+    } else {
         height = window_ratio / view_ratio;
         top    = (1.0f - height) / 2.0f;
     }
@@ -34,79 +31,106 @@ sf::View letterboxed(sf::View view, sf::Vector2u window_size) {
     view.setViewport(sf::FloatRect({left, top}, {width, height}));
     return view;
 }
+
+sf::RectangleShape filled(const flappy::Rect& r, sf::Color color) {
+    sf::RectangleShape shape({r.w, r.h});
+    shape.setPosition({r.x, r.y});
+    shape.setFillColor(color);
+    return shape;
+}
+
+sf::RectangleShape outlined(const flappy::Rect& r, sf::Color color) {
+    sf::RectangleShape shape({r.w, r.h});
+    shape.setPosition({r.x, r.y});
+    shape.setFillColor(sf::Color::Transparent);
+    shape.setOutlineColor(color);
+    shape.setOutlineThickness(-2.0f);   // negative draws inward
+    return shape;
+}
+
 }  // namespace
 
 int main() {
-    sf::RenderWindow window(
-        sf::VideoMode({kRefWidth / kWindowScale, kRefHeight / kWindowScale}),
-        "FlappyAnimals");
+    const flappy::GameTuning tuning;
 
-    // Pin presentation to the monitor. Comment this out and frames/sec below
-    // jumps into the thousands while steps/sec stays at 60 — which is the
-    // entire point of the fixed timestep, made obvious.
+    sf::RenderWindow window(
+        sf::VideoMode({static_cast<unsigned>(tuning.reference_width)  / kWindowScale,
+                       static_cast<unsigned>(tuning.reference_height) / kWindowScale}),
+        "FlappyAnimals");
     window.setVerticalSyncEnabled(true);
 
-    // Draw in 1080x1920 coordinates forever; the view maps them onto whatever
-    // the real window — or phone screen — happens to be.
-    sf::View view(sf::FloatRect({0.0f, 0.0f},
-                                {static_cast<float>(kRefWidth),
-                                 static_cast<float>(kRefHeight)}));
+    sf::View view(sf::FloatRect({0.0f, 0.0f}, {tuning.reference_width, tuning.reference_height}));
     window.setView(letterboxed(view, window.getSize()));
 
     flappy::FixedTimestep timestep;
     sf::Clock frame_clock;
-    sf::Clock report_clock;
-    long long step_count      = 0;
-    int       steps_this_second  = 0;
-    int       frames_this_second = 0;
 
-    sf::RectangleShape marker({18.0f, 80.0f});
-    marker.setFillColor(sf::Color(240, 200, 90));
+    flappy::Player player;
+    flappy::GateField field;
+    bool flying = false;   // false = Ready, world frozen. Spec 4.4.
+
+    auto start_run = [&] {
+        player   = flappy::Player{};
+        player.y = tuning.reference_height * 0.5f;
+        field.reset(kSeed);
+        flying   = false;
+    };
+    start_run();
 
     while (window.isOpen()) {
+        bool tapped = false;
+
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             } else if (const auto* resized = event->getIf<sf::Event::Resized>()) {
                 window.setView(letterboxed(view, resized->size));
+            } else if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
+                if (key->code == sf::Keyboard::Key::Space)  tapped = true;
+                if (key->code == sf::Keyboard::Key::Escape) window.close();
+            } else if (event->is<sf::Event::MouseButtonPressed>()) {
+                tapped = true;
             }
         }
 
-        // Microseconds, not asSeconds(), because asSeconds() returns a float
-        // and we want the accumulator's remainder to survive at double width.
+        if (tapped) {
+            flying = true;            // the first tap starts the run
+            player.flap(tuning);
+        }
+
         const double elapsed_seconds =
             static_cast<double>(frame_clock.restart().asMicroseconds()) / 1'000'000.0;
 
-        const int steps = timestep.accumulate(elapsed_seconds);
-        for (int i = 0; i < steps; ++i) {
-            // Milestone 1's gravity, gates and collision go here.
-            ++step_count;
+        const float dt = static_cast<float>(timestep.step_seconds);
+
+        for (int i = 0, steps = timestep.accumulate(elapsed_seconds); i < steps; ++i) {
+            if (!flying) break;       // Ready: nothing moves until you tap
+
+            player.step(tuning, dt);
+            field.step(tuning, dt, tuning.scroll_speed);
+
+            if (flappy::hits_boundary(tuning, player) ||
+                flappy::hits_any_gate(tuning, player, field)) {
+                start_run();
+                break;
+            }
         }
-        steps_this_second += steps;
-        ++frames_this_second;
 
         window.clear(sf::Color(18, 22, 34));
 
-        // One lap per second: 60 steps at 1080/60 px each.
-        marker.setPosition(
-            {static_cast<float>((step_count % 60) * (kRefWidth / 60)),
-             static_cast<float>(kRefHeight) * 0.5f - 40.0f});
-        window.draw(marker);
+        for (const flappy::Gate& gate : field.gates) {
+            if (!gate.active) continue;
+            window.draw(filled(flappy::gate_top_body(tuning, gate), sf::Color(70, 110, 80)));
+            window.draw(filled(flappy::gate_bottom_body(tuning, gate), sf::Color(70, 110, 80)));
+        }
+
+        // Sprite filled, collision body outlined on top — so you can SEE the
+        // 80% forgiveness rather than trusting a unit test about it.
+        window.draw(filled(flappy::player_sprite(tuning, player),  sf::Color(240, 200, 90)));
+        window.draw(outlined(flappy::player_body(tuning, player),  sf::Color(255, 80, 80)));
 
         window.display();
-
-        if (report_clock.getElapsedTime().asSeconds() >= 1.0f) {
-            std::cout << "steps/sec = " << steps_this_second
-                      << "   frames/sec = " << frames_this_second << '\n'
-                      << std::flush;
-            steps_this_second  = 0;
-            frames_this_second = 0;
-            report_clock.restart();
-        }
     }
 
-    // No teardown. sf::RenderWindow's destructor closes the window when it
-    // goes out of scope — this is the RAII that SDL3 would have made us write
-    // by hand, and the reason the error-handling ladder above it is gone too.
     return 0;
 }

@@ -13,6 +13,9 @@ namespace flappy {
         float max_fall_speed = 1200.0f;
         float collision_scale = 0.80f;
 
+        float player_width = 90.0f;
+        float player_heigh = 64.0f;
+
         //gates
         float scroll_speed = 420.0f;
         float gate_gap = 440.0f;
