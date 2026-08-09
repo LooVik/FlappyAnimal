@@ -1,11 +1,12 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)
 project(FlappyAnimals LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Put every executable and DLL in one folder so the game can find SDL3.dll.
+# Keep every executable in one predictable folder.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 include(FetchContent)
@@ -18,6 +19,23 @@ FetchContent_Declare(doctest
 )
 FetchContent_MakeAvailable(doctest)
 
+# --- SFML 3 ----------------------------------------------------------------
+# Set these BEFORE MakeAvailable — SFML reads them while configuring itself.
+# Static libs are CMake's default, which means nothing to ship beside the .exe.
+set(BUILD_SHARED_LIBS OFF)
+set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)  # this game will never need it
+# Audio stays ON deliberately: sound effects arrive in a later milestone, and
+# flipping this later would force a full SFML rebuild.
+
+FetchContent_Declare(SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG        3.1.0
+    GIT_SHALLOW    TRUE
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+FetchContent_MakeAvailable(SFML)
+
 # --- tests ----------------------------------------------------------------
 enable_testing()
 add_executable(flappy_tests
@@ -27,3 +45,11 @@ add_executable(flappy_tests
 target_include_directories(flappy_tests PRIVATE src)
 target_link_libraries(flappy_tests PRIVATE doctest::doctest)
 add_test(NAME flappy_tests COMMAND flappy_tests)
+
+# --- game executable -------------------------------------------------------
+add_executable(flappy
+    src/main.cpp
+    src/app/time_step.cpp
+)
+target_include_directories(flappy PRIVATE src)
+target_link_libraries(flappy PRIVATE SFML::Graphics)
