@@ -18,6 +18,8 @@ namespace flappy {
         float gate_gap = 440.0f;
         float gate_width = 140.0f;
         float spawn_interval = 2.0f;
+        float gate_margin   = 160.0f;  //keeps a gap clear of the screen edge
+        float max_gap_shift = 320.0f;   // reachability cap between consecutive gates
 
         //difficulty ramp, spec 5.2
         int ramp_every_points = 10;
