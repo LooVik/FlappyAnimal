@@ -40,7 +40,9 @@ FetchContent_MakeAvailable(SFML)
 enable_testing()
 add_executable(flappy_tests
     tests/test_time_step.cpp
+    tests/test_player.cpp
     src/app/time_step.cpp
+    src/gameplay/player.cpp
 )
 target_include_directories(flappy_tests PRIVATE src)
 target_link_libraries(flappy_tests PRIVATE doctest::doctest)
@@ -50,6 +52,7 @@ add_test(NAME flappy_tests COMMAND flappy_tests)
 add_executable(flappy
     src/main.cpp
     src/app/time_step.cpp
+    src/gameplay/player.cpp
 )
 target_include_directories(flappy PRIVATE src)
 target_link_libraries(flappy PRIVATE SFML::Graphics)
