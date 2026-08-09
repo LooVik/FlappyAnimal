@@ -36,26 +36,26 @@ FetchContent_Declare(SFML
 )
 FetchContent_MakeAvailable(SFML)
 
+# --- gameplay logic: never includes SFML, so tests run with no window ------
+add_library(flappy_core
+    src/app/time_step.cpp
+    src/gameplay/player.cpp
+    src/gameplay/gate_generator.cpp
+    src/gameplay/gate_field.cpp
+)
+target_include_directories(flappy_core PUBLIC src)
+
 # --- tests ----------------------------------------------------------------
 enable_testing()
 add_executable(flappy_tests
     tests/test_time_step.cpp
     tests/test_player.cpp
     tests/test_gate_generator.cpp
-    src/app/time_step.cpp
-    src/gameplay/player.cpp
-    src/gameplay/gate_generator.cpp
+    tests/test_gate_field.cpp
 )
-target_include_directories(flappy_tests PRIVATE src)
-target_link_libraries(flappy_tests PRIVATE doctest::doctest)
+target_link_libraries(flappy_tests PRIVATE flappy_core doctest::doctest)
 add_test(NAME flappy_tests COMMAND flappy_tests)
 
 # --- game executable -------------------------------------------------------
-add_executable(flappy
-    src/main.cpp
-    src/app/time_step.cpp
-    src/gameplay/player.cpp
-    src/gameplay/gate_generator.cpp
-)
-target_include_directories(flappy PRIVATE src)
-target_link_libraries(flappy PRIVATE SFML::Graphics)
+add_executable(flappy src/main.cpp)
+target_link_libraries(flappy PRIVATE flappy_core SFML::Graphics)
