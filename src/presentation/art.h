@@ -17,6 +17,9 @@ struct Art {
     sf::Texture pipe_body;   // just the 32x48 shaft, repeating
     sf::Texture background;  // 256x256, repeating
 
+    //Fonts
+    sf::Font font;
+
     // Source pixel sizes. Everything is drawn at kPixelScale, so these times
     // the scale must match the matching values in GameTuning.
     static constexpr int kBirdFrame  = 16;   // x6 = 80 = player_width/height

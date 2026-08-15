@@ -118,6 +118,19 @@ flappy::Rect nudged(flappy::Rect r, float dx, float dy) {
     return r;
 }
 
+void draw_text(sf::RenderTarget& target, const sf::Font& font, const std::string& value, unsigned size, float cx, float cy) 
+{
+    sf::Text text(font, value, size);
+    text.setFillColor(sf::Color::White);
+    text.setOutlineColor(sf::Color(20, 20, 20));
+    text.setOutlineThickness(static_cast<float>(size) * 0.12f);
+
+    const sf::FloatRect bounds = text.getLocalBounds();
+    text.setOrigin({bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + bounds.size.y * 0.5f});
+    text.setPosition({cx, cy});
+    target.draw(text);
+}
+
 std::string status_line(const flappy::GameTuning& tuning, int score) {
     return "FlappyAnimals  " + std::to_string(score) +
             "  bird "      + std::to_string(static_cast<int>(tuning.player_width)) +
@@ -287,16 +300,15 @@ int main() {
         // Gates move at a constant speed, so their offset is exact arithmetic.
         // The bird is accelerating, so its offset is a first-order estimate
         // from current velocity — which is what every engine does here.
-        const float alpha   = static_cast<float>(timestep.alpha());
+        const bool simulating = flying && !dead;
+        const float alpha   = simulating ? static_cast<float>(timestep.alpha()) : 0.0f;
         const float gate_dx = -flappy::current_scroll_speed(tuning, score) * alpha * dt;
         const float bird_dy = player.velocity_y * alpha * dt;
 
         for (const flappy::Gate& gate : field.gates) {
             if (!gate.active) continue;
-            draw_pipe(window, art,
-                      nudged(flappy::gate_top_body(tuning, gate), gate_dx, 0.0f), true);
-            draw_pipe(window, art,
-                      nudged(flappy::gate_bottom_body(tuning, gate), gate_dx, 0.0f), false);
+            draw_pipe(window, art, nudged(flappy::gate_top_body(tuning, gate), gate_dx, 0.0f), true);
+            draw_pipe(window, art, nudged(flappy::gate_bottom_body(tuning, gate), gate_dx, 0.0f), false);
         }
 
         // Nose up when rising, dive when falling — the whole tilt comes from
@@ -309,6 +321,13 @@ int main() {
         draw_bird(window, art.bird,
                   nudged(flappy::player_sprite(tuning, player), 0.0f, bird_dy),
                   dead ? 0 : frame, tilt);
+
+        draw_text(window, art.font, std::to_string(score), 96, tuning.reference_width * 0.5f, 220.0f);
+
+        if(!flying && !dead) 
+        {
+            draw_text(window, art.font, " TAP TO START", 48, tuning.reference_width * 0.5f, tuning.reference_height * 0.62f);
+        }
 
         // Press H to see the 80% collision body over the art.
         if (show_hitboxes) {

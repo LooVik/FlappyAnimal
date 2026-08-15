@@ -45,6 +45,13 @@ bool Art::load(const std::string& asset_dir) {
         return false;
     }
 
+    if(!font.openFromFile(asset_dir + "/fonts/PressStart2P-Regular.ttf")) 
+    {
+        std::cerr << "art: failed to load fonts\n";
+        return false;
+    }
+    font.setSmooth(false);
+
     return true;
 }
 
