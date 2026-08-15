@@ -8,18 +8,18 @@ namespace flappy {
 
         //player
         float player_anchor_x = 0.28f;
-        float gravity = 2800.0f;
+        float gravity = 3400.0f;
         float tap_impulse = -850.0f;
         float max_fall_speed = 1200.0f;
         float collision_scale = 0.80f;
 
-        float player_width = 90.0f;
-        float player_heigh = 64.0f;
+        float player_width = 80.0f;   // 16 px sprite at 5x
+        float player_height = 80.0f;  // 16 px sprite at 5x
 
         //gates
         float scroll_speed = 420.0f;
         float gate_gap = 440.0f;
-        float gate_width = 140.0f;
+        float gate_width = 160.0f;    // 32 px tile at 5x
         float spawn_interval = 2.0f;
         float gate_margin   = 160.0f;  //keeps a gap clear of the screen edge
         float max_gap_shift = 320.0f;   // reachability cap between consecutive gates

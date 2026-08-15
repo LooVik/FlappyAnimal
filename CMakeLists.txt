@@ -63,5 +63,15 @@ target_link_libraries(flappy_tests PRIVATE flappy_core doctest::doctest)
 add_test(NAME flappy_tests COMMAND flappy_tests)
 
 # --- game executable -------------------------------------------------------
-add_executable(flappy src/main.cpp)
+add_executable(flappy
+    src/main.cpp
+    src/presentation/art.cpp
+)
 target_link_libraries(flappy PRIVATE flappy_core SFML::Graphics)
+
+# The game loads textures by relative path, so assets/ must sit beside the .exe.
+# Same reasoning as shipping a DLL: nothing is implicit outside the source tree.
+add_custom_command(TARGET flappy POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:flappy>/assets"
+    VERBATIM)

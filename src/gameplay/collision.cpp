@@ -11,9 +11,9 @@ namespace flappy {
     Rect player_sprite(const GameTuning& tuning, const Player& player) {
         const float center_x = tuning.reference_width * tuning.player_anchor_x;
         return Rect{center_x - tuning.player_width * 0.5f,
-                    player.y - tuning.player_heigh * 0.5f,
+                    player.y - tuning.player_height * 0.5f,
                     tuning.player_width,
-                    tuning.player_heigh};
+                    tuning.player_height};
     }
 
     Rect player_body(const GameTuning& tuning, const Player& player) {

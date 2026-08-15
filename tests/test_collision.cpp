@@ -68,10 +68,19 @@ TEST_CASE("the 80 percent body forgives a visual clip") {
     GameTuning tuning;
     Player     player;
 
-    // Gap top edge is at 800 - 220 = 580.
-    // Sprite is 64 tall, body 51.2. At y = 607 the SPRITE reaches up to 575 —
-    // five pixels inside the pillar — while the BODY stops at 581.4.
-    player.y = 607.0f;
+    // Derive the position instead of hardcoding it, so this test survives a
+    // change to the sprite size. (It did not, the first time: the numbers were
+    // worked out by hand for a 64 px sprite and quietly stopped meaning
+    // anything when the art arrived at 80 px.)
+    //
+    // Put the player where the SPRITE pokes into the top pillar but the BODY
+    // does not. Any y strictly between gap_top + body_half and
+    // gap_top + sprite_half does that; take the midpoint for margin.
+    const float gap_top     = 800.0f - 440.0f * 0.5f;
+    const float sprite_half = tuning.player_height * 0.5f;
+    const float body_half   = sprite_half * tuning.collision_scale;
+
+    player.y = gap_top + (body_half + sprite_half) * 0.5f;
 
     const Gate& gate = field_with_gate(800.0f).gates[0];
     const Rect  top  = flappy::gate_top_body(tuning, gate);
