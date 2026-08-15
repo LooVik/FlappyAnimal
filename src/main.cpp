@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <cmath>
 
 #include "app/time_step.h"
 #include "gameplay/collision.h"
@@ -54,17 +55,43 @@ sf::RectangleShape outlined(const flappy::Rect& r, sf::Color color) {
 // pixel art distorts it; tiling keeps every pixel square. This works because
 // art.cpp calls setRepeated(true) on these textures — a texture rect larger
 // than the texture then wraps instead of clamping.
-void draw_tiled(sf::RenderTarget& target, const sf::Texture& texture,
-                const flappy::Rect& dest, float scale) {
+void draw_tiled(sf::RenderTarget& target, const sf::Texture& texture, const flappy::Rect& dest, float scale) {
     if (dest.w <= 0.0f || dest.h <= 0.0f) return;
 
     sf::Sprite sprite(texture);
-    sprite.setTextureRect(sf::IntRect(
-        {0, 0},
-        {static_cast<int>(dest.w / scale), static_cast<int>(dest.h / scale)}));
+    sprite.setTextureRect(sf::IntRect({0, 0}, {static_cast<int>(dest.w / scale), static_cast<int>(dest.h / scale)}));
     sprite.setPosition({dest.x, dest.y});
     sprite.setScale({scale, scale});
     target.draw(sprite);
+}
+
+// A gate pillar: a seamless tiled shaft with one cap on the end facing the gap.
+// cap_at_bottom is true for the pillar hanging from the ceiling.
+void draw_pipe(sf::RenderTarget& target, const flappy::Art& art, const flappy::Rect& dest, bool cap_at_bottom) {
+    if (dest.w <= 0.0f || dest.h <= 0.0f) return;
+
+    // Derive the scale from the destination width rather than assuming it, so
+    // changing gate_width can never desync the art from the collision box.
+    const float scale   = dest.w / static_cast<float>(flappy::Art::kPipeTileW);
+    const float cap_h   = flappy::Art::kPipeCapH * scale;
+    const float shaft_h = std::max(0.0f, dest.h - cap_h);
+
+    if (shaft_h > 0.0f) {
+        sf::Sprite shaft(art.pipe_body);
+        shaft.setTextureRect(sf::IntRect({0, 0}, {flappy::Art::kPipeTileW, static_cast<int>(std::ceil(shaft_h / scale))}));
+        shaft.setScale({scale, scale});
+        shaft.setPosition({dest.x, cap_at_bottom ? dest.y : dest.y + cap_h});
+        target.draw(shaft);
+    }
+
+    // The source cell has a cap at BOTH ends, so a ceiling pillar just reads
+    // the lower one. No mirroring, no negative scale.
+    const int cap_src_y = cap_at_bottom ? flappy::Art::kPipeCapH + flappy::Art::kPipeBodyH : 0;
+
+    sf::Sprite cap(art.pipe, sf::IntRect({0, cap_src_y}, {flappy::Art::kPipeTileW, flappy::Art::kPipeCapH}));
+    cap.setScale({scale, scale});
+    cap.setPosition({dest.x, cap_at_bottom ? dest.y + dest.h - cap_h : dest.y});
+    target.draw(cap);
 }
 
 // One frame out of the bird atlas, tilted by how fast it is rising or falling.
@@ -77,21 +104,28 @@ void draw_bird(sf::RenderTarget& target, const sf::Texture& texture,
     // Rotate about the middle of the frame, not the top-left corner, or the
     // bird swings around its own shoulder.
     sprite.setOrigin({kSize * 0.5f, kSize * 0.5f});
-    sprite.setScale({dest.w / static_cast<float>(kSize),
-                     dest.h / static_cast<float>(kSize)});
+    sprite.setScale({dest.w / static_cast<float>(kSize), dest.h / static_cast<float>(kSize)});
     sprite.setPosition({dest.x + dest.w * 0.5f, dest.y + dest.h * 0.5f});
     sprite.setRotation(sf::degrees(tilt_degrees));
     target.draw(sprite);
 }
 
+// Shift a rect for render interpolation. The simulation only knows whole
+// steps; alpha() says how far past the last one we are, so we draw ahead.
+flappy::Rect nudged(flappy::Rect r, float dx, float dy) {
+    r.x += dx;
+    r.y += dy;
+    return r;
+}
+
 std::string status_line(const flappy::GameTuning& tuning, int score) {
     return "FlappyAnimals  " + std::to_string(score) +
             "  bird "      + std::to_string(static_cast<int>(tuning.player_width)) +
-           "   |  grav "  + std::to_string(static_cast<int>(tuning.gravity)) +
-           "  flap "      + std::to_string(static_cast<int>(tuning.tap_impulse)) +
-           "  fall "      + std::to_string(static_cast<int>(tuning.max_fall_speed)) +
-           "  gap "       + std::to_string(static_cast<int>(tuning.gate_gap)) +
-           "  speed "     + std::to_string(static_cast<int>(tuning.scroll_speed));
+            "   |  grav "  + std::to_string(static_cast<int>(tuning.gravity)) +
+            "  flap "      + std::to_string(static_cast<int>(tuning.tap_impulse)) +
+            "  fall "      + std::to_string(static_cast<int>(tuning.max_fall_speed)) +
+            "  gap "       + std::to_string(static_cast<int>(tuning.gate_gap)) +
+            "  speed "     + std::to_string(static_cast<int>(tuning.scroll_speed));
 }
 
 }  // namespace
@@ -233,16 +267,36 @@ int main() {
         // ---- draw ----------------------------------------------------------
         window.clear(sf::Color(18, 22, 34));
 
-        draw_tiled(window, art.background,
-                   flappy::Rect{0.0f, 0.0f, tuning.reference_width, tuning.reference_height},
-                   flappy::Art::kPixelScale);
+        // One copy, scaled to cover, anchored to the bottom so the ground strip
+        // sits on the floor. Tiling this vertically is what put orange bands
+        // across the sky: the image is a whole scene, not a repeating pattern.
+        {
+            constexpr float kBgScale = 8.0f;   // 256 x 8 = 2048, covers 1080x1920
+            const float bg_size = flappy::Art::kBackground * kBgScale;
+            sf::Sprite bg(art.background);
+            bg.setScale({kBgScale, kBgScale});
+            bg.setPosition({0.0f, tuning.reference_height - bg_size});
+            window.draw(bg);
+        }
+
+        // The simulation only advances in whole 1/60 s steps, but the display
+        // does not land on them — some frames get 0 steps, some get 2, and that
+        // is the stutter. alpha() is how far past the last step we are, so we
+        // draw everything that fraction ahead.
+        //
+        // Gates move at a constant speed, so their offset is exact arithmetic.
+        // The bird is accelerating, so its offset is a first-order estimate
+        // from current velocity — which is what every engine does here.
+        const float alpha   = static_cast<float>(timestep.alpha());
+        const float gate_dx = -flappy::current_scroll_speed(tuning, score) * alpha * dt;
+        const float bird_dy = player.velocity_y * alpha * dt;
 
         for (const flappy::Gate& gate : field.gates) {
             if (!gate.active) continue;
-            draw_tiled(window, art.pipe, flappy::gate_top_body(tuning, gate),
-                       flappy::Art::kPixelScale);
-            draw_tiled(window, art.pipe, flappy::gate_bottom_body(tuning, gate),
-                       flappy::Art::kPixelScale);
+            draw_pipe(window, art,
+                      nudged(flappy::gate_top_body(tuning, gate), gate_dx, 0.0f), true);
+            draw_pipe(window, art,
+                      nudged(flappy::gate_bottom_body(tuning, gate), gate_dx, 0.0f), false);
         }
 
         // Nose up when rising, dive when falling — the whole tilt comes from
@@ -252,7 +306,8 @@ int main() {
         const int frame = static_cast<int>(
             (step_count / kFramesPerBirdFrame) % flappy::Art::kFrameCount);
 
-        draw_bird(window, art.bird, flappy::player_sprite(tuning, player),
+        draw_bird(window, art.bird,
+                  nudged(flappy::player_sprite(tuning, player), 0.0f, bird_dy),
                   dead ? 0 : frame, tilt);
 
         // Press H to see the 80% collision body over the art.

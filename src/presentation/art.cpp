@@ -30,11 +30,18 @@ bool Art::load(const std::string& asset_dir) {
     // its own texture, because setRepeated() tiles a whole texture and would
     // otherwise repeat all eight colours. Change the cell offset below to pick
     // a different colour; change the filename to pick a different style.
-    if (!load_pixel(pipe, asset_dir + "/Tiles/Style 1/PipeStyle1.png", true, sf::IntRect({0, 0}, {kPipeTileW, kPipeTileH}))) {
+    const std::string pipe_path = asset_dir + "/Tiles/Style 1/PipeStyle1.png";
+
+    if(!load_pixel(pipe, pipe_path, false, sf::IntRect({0,0}, {kPipeTileW, kPipeBodyH + kPipeCapH + kPipeCapH})))
+    {
+        return false;
+    }
+    if(!load_pixel(pipe_body, pipe_path, true, sf::IntRect({0, kPipeCapH + 16}, {kPipeTileW, kPipeShaftSlice})))
+    {
         return false;
     }
 
-    if (!load_pixel(background, asset_dir + "/Background/Background1.png", true)) {
+    if (!load_pixel(background, asset_dir + "/Background/Background1.png", false)) {
         return false;
     }
 
