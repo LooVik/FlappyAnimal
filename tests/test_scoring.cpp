@@ -80,7 +80,7 @@ TEST_CASE("a full run scores one point per gate, no more") {
 
     // Twenty seconds at 60 Hz.
     for (int i = 0; i < 1200; ++i) {
-        field.step(tuning, 1.0f / 60.0f, tuning.scroll_speed);
+        field.step(tuning, 1.0f / 60.0f, tuning.scroll_speed, tuning.gate_gap);
         if (field.active_count() > active_before) ++spawns;
         active_before = field.active_count();
         total += flappy::score_passed_gates(tuning, field);

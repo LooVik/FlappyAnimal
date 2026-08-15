@@ -29,12 +29,12 @@ namespace flappy {
 
 
     Rect gate_top_body(const GameTuning& tuning, const Gate& gate) {
-        const float gap_top = gate.gap_center - tuning.gate_gap * 0.5f;
+        const float gap_top = gate.gap_center - gate.gap * 0.5f;
         return Rect{gate.x, 0.0f, tuning.gate_width, gap_top};
     }
 
     Rect gate_bottom_body(const GameTuning& tuning, const Gate& gate) {
-        const float gap_bottom = gate.gap_center + tuning.gate_gap * 0.5f;
+        const float gap_bottom = gate.gap_center + gate.gap * 0.5f;
         return Rect{gate.x, gap_bottom, tuning.gate_width,
                     tuning.reference_height - gap_bottom};
     }

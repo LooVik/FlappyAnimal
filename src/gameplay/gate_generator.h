@@ -11,7 +11,7 @@ namespace flappy {
 
         void reset(std::uint32_t seed);
 
-        float next_gap_center(const GameTuning& tuning);
+        float next_gap_center(const GameTuning& tuning, float gate_gap);
 
         std::uint32_t next_u32();
         float next_unit();

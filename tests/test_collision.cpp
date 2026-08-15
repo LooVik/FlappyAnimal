@@ -1,7 +1,6 @@
 #include <doctest/doctest.h>
 
 #include "gameplay/collision.h"
-#include <doctest/parts/public/macros.h>
 
 using flappy::Gate;
 using flappy::GameTuning;
@@ -15,6 +14,7 @@ static GateField field_with_gate(float gap_center) {
     GateField field;
     field.gates[0].x          = 280.0f;
     field.gates[0].gap_center = gap_center;
+    field.gates[0].gap        = 440.0f;
     field.gates[0].active     = true;
     return field;
 }

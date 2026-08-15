@@ -14,7 +14,7 @@ TEST_CASE("the first step spawns a gate at the right edge") {
     field.reset(1u);
 
     CHECK(field.active_count() == 0);
-    field.step(tuning, kDt, tuning.scroll_speed);
+    field.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
     CHECK(field.active_count() == 1);
 }
 
@@ -22,14 +22,14 @@ TEST_CASE("gates scroll left at the given speed") {
     GameTuning tuning;
     GateField  field;
     field.reset(1u);
-    field.step(tuning, kDt, tuning.scroll_speed);
+    field.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
 
     float before = 0.0f;
     for (const Gate& gate : field.gates) {
         if (gate.active) before = gate.x;
     }
 
-    field.step(tuning, kDt, tuning.scroll_speed);
+    field.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
 
     float after = 0.0f;
     for (const Gate& gate : field.gates) {
@@ -44,13 +44,13 @@ TEST_CASE("a faster scroll speed moves gates further per step") {
 
     GateField slow;
     slow.reset(1u);
-    slow.step(tuning, kDt, 420.0f);
-    slow.step(tuning, kDt, 420.0f);
+    slow.step(tuning, kDt, 420.0f, tuning.gate_gap);
+    slow.step(tuning, kDt, 420.0f, tuning.gate_gap);
 
     GateField fast;
     fast.reset(1u);
-    fast.step(tuning, kDt, 620.0f);
-    fast.step(tuning, kDt, 620.0f);
+    fast.step(tuning, kDt, 620.0f, tuning.gate_gap);
+    fast.step(tuning, kDt, 620.0f, tuning.gate_gap);
 
     CHECK(fast.gates[0].x < slow.gates[0].x);
 }
@@ -62,12 +62,12 @@ TEST_CASE("gates are retired once fully off the left edge") {
 
     // Run long enough for the first gate to cross the whole screen and leave.
     for (int i = 0; i < 60; ++i) {
-        field.step(tuning, kDt, tuning.scroll_speed);
+        field.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
     }
     const int early = field.active_count();
 
     for (int i = 0; i < 300; ++i) {
-        field.step(tuning, kDt, tuning.scroll_speed);
+        field.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
     }
 
     CHECK(early >= 1);
@@ -81,7 +81,7 @@ TEST_CASE("the pool never overflows over a long run") {
 
     // Five minutes at 60 Hz. Without retirement this would need 150 gates.
     for (int i = 0; i < 18000; ++i) {
-        field.step(tuning, kDt, tuning.scroll_speed);
+        field.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
         CHECK(field.active_count() <= GateField::kMaxGates);
     }
 }
@@ -95,7 +95,7 @@ TEST_CASE("gates spawn on the configured interval") {
     int previous = 0;
     // Ten seconds should produce ceil(10 / 2.0) = 5 or 6 spawns.
     for (int i = 0; i < 600; ++i) {
-        field.step(tuning, kDt, tuning.scroll_speed);
+        field.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
         const int now = field.active_count();
         if (now > previous) ++spawns;
         previous = now;
@@ -112,8 +112,8 @@ TEST_CASE("the same seed produces the same course") {
     b.reset(4242u);
 
     for (int i = 0; i < 600; ++i) {
-        a.step(tuning, kDt, tuning.scroll_speed);
-        b.step(tuning, kDt, tuning.scroll_speed);
+        a.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
+        b.step(tuning, kDt, tuning.scroll_speed, tuning.gate_gap);
         for (int g = 0; g < GateField::kMaxGates; ++g) {
             CHECK(a.gates[g].x == b.gates[g].x);
             CHECK(a.gates[g].gap_center == b.gates[g].gap_center);

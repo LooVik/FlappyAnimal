@@ -9,7 +9,7 @@ namespace flappy {
         spawn_timer = 0.0f;
     }
 
-    void GateField::spawn(const GameTuning& tuning) {
+    void GateField::spawn(const GameTuning& tuning, float gate_gap) {
         for (Gate& gate: gates) {
             if(gate.active) 
             {
@@ -17,14 +17,15 @@ namespace flappy {
             }
 
             gate.x = tuning.reference_width;
-            gate.gap_center = generator.next_gap_center(tuning);
+            gate.gap = gate_gap;
+            gate.gap_center = generator.next_gap_center(tuning, gate_gap);
             gate.active = true;
             gate.scored = false;
             return;
         }
     }
 
-    void GateField::step(const GameTuning& tuning, float dt, float scroll_speed) {
+    void GateField::step(const GameTuning& tuning, float dt, float scroll_speed, float gate_gap) {
         for (Gate& gate: gates) {
             if(!gate.active) 
             {
@@ -42,7 +43,7 @@ namespace flappy {
         if(spawn_timer <= 0.0f)
         {
             spawn_timer += tuning.spawn_interval;
-            spawn(tuning);
+            spawn(tuning, gate_gap);
         }
     }
 

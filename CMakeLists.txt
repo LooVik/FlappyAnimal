@@ -44,6 +44,7 @@ add_library(flappy_core
     src/gameplay/gate_field.cpp
     src/gameplay/collision.cpp
     src/gameplay/scoring.cpp
+    src/gameplay/difficulty.cpp
 )
 target_include_directories(flappy_core PUBLIC src)
 
@@ -56,6 +57,7 @@ add_executable(flappy_tests
     tests/test_gate_field.cpp
     tests/test_collision.cpp
     tests/test_scoring.cpp
+    tests/test_difficulty.cpp
 )
 target_link_libraries(flappy_tests PRIVATE flappy_core doctest::doctest)
 add_test(NAME flappy_tests COMMAND flappy_tests)

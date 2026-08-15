@@ -18,8 +18,8 @@ namespace flappy {
         return static_cast<float>(next_u32() >> 8) / 16777216.0f;
     }
 
-    float GateGenerator::next_gap_center(const GameTuning& tuning) {
-        const float half_gap = tuning.gate_gap * 0.5f;
+    float GateGenerator::next_gap_center(const GameTuning& tuning, float gate_gap) {
+        const float half_gap = gate_gap * 0.5f;
 
         float min_center = tuning.gate_margin + half_gap;
         float max_center = tuning.reference_height - tuning.gate_margin - half_gap;

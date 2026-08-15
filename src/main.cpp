@@ -10,6 +10,7 @@
 #include "gameplay/player.h"
 #include "gameplay/tuning.h"
 #include "gameplay/scoring.h"
+#include "gameplay/difficulty.h"
 
 namespace {
 
@@ -70,14 +71,18 @@ int main() {
     flappy::Player player;
     flappy::GateField field;
     bool flying = false;   // false = Ready, world frozen. Spec 4.4.
+    bool dead = false;
     int score = 0;
     int shown_score = -1;
+    float dead_timer = 0.0f;
 
     auto start_run = [&] {
         player   = flappy::Player{};
         player.y = tuning.reference_height * 0.5f;
         field.reset(kSeed);
         flying   = false;
+        dead = false;
+        dead_timer = 0.0f;
         score = 0;
     };
     start_run();
@@ -99,8 +104,18 @@ int main() {
         }
 
         if (tapped) {
-            flying = true;            // the first tap starts the run
-            player.flap(tuning);
+            if(dead)
+            {
+                if(dead_timer <= 0.0f)
+                {
+                    start_run();
+                }
+            }
+            else
+            {
+                flying = true;            // the first tap starts the run
+                player.flap(tuning);
+            }
         }
 
         const double elapsed_seconds =
@@ -109,15 +124,26 @@ int main() {
         const float dt = static_cast<float>(timestep.step_seconds);
 
         for (int i = 0, steps = timestep.accumulate(elapsed_seconds); i < steps; ++i) {
-            if (!flying) break;       // Ready: nothing moves until you tap
+
+            if(dead)
+            {
+                dead_timer -= dt;
+                continue;
+            }
+
+            if (!flying)
+            {
+                break;
+            }       // Ready: nothing moves until you tap
 
             player.step(tuning, dt);
-            field.step(tuning, dt, tuning.scroll_speed);
+            field.step(tuning, dt, flappy::current_scroll_speed(tuning, score), flappy::current_gate_gap(tuning, score));
             score += flappy::score_passed_gates(tuning, field);
 
             if (flappy::hits_boundary(tuning, player) ||
                 flappy::hits_any_gate(tuning, player, field)) {
-                start_run();
+                dead = true;
+                dead_timer = 0.2f;
                 break;
             }
         }
@@ -137,7 +163,7 @@ int main() {
 
         // Sprite filled, collision body outlined on top — so you can SEE the
         // 80% forgiveness rather than trusting a unit test about it.
-        window.draw(filled(flappy::player_sprite(tuning, player),  sf::Color(240, 200, 90)));
+        window.draw(filled(flappy::player_sprite(tuning, player), dead ? sf::Color(230,70,70) : sf::Color(240, 200, 90)));
         window.draw(outlined(flappy::player_body(tuning, player),  sf::Color(255, 80, 80)));
 
         window.display();

@@ -18,7 +18,7 @@ static std::vector<float> course(std::uint32_t seed, int count) {
 
     std::vector<float> centers;
     for (int i = 0; i < count; ++i) {
-        centers.push_back(gen.next_gap_center(tuning));
+        centers.push_back(gen.next_gap_center(tuning, tuning.gate_gap));
     }
     return centers;
 }

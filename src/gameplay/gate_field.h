@@ -10,6 +10,7 @@ namespace flappy {
     struct Gate {
         float x = 0.0f;
         float gap_center = 0.0f;
+        float gap = 0.0f;
         bool active = false;
         bool scored = false;
     };
@@ -23,10 +24,10 @@ namespace flappy {
 
         void reset(std::uint32_t seed);
 
-        void step(const GameTuning& tuning, float dt, float scroll_speed);
+        void step(const GameTuning& tuning, float dt, float scroll_speed, float gate_gap);
 
         int active_count() const;
 
-        private: void spawn(const GameTuning& tuning);
+        private: void spawn(const GameTuning& tuning, float gate_gap);
     };
 }
