@@ -2,12 +2,14 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 
 #include "app/time_step.h"
 #include "gameplay/collision.h"
 #include "gameplay/gate_field.h"
 #include "gameplay/player.h"
 #include "gameplay/tuning.h"
+#include "gameplay/scoring.h"
 
 namespace {
 
@@ -68,12 +70,15 @@ int main() {
     flappy::Player player;
     flappy::GateField field;
     bool flying = false;   // false = Ready, world frozen. Spec 4.4.
+    int score = 0;
+    int shown_score = -1;
 
     auto start_run = [&] {
         player   = flappy::Player{};
         player.y = tuning.reference_height * 0.5f;
         field.reset(kSeed);
         flying   = false;
+        score = 0;
     };
     start_run();
 
@@ -108,12 +113,18 @@ int main() {
 
             player.step(tuning, dt);
             field.step(tuning, dt, tuning.scroll_speed);
+            score += flappy::score_passed_gates(tuning, field);
 
             if (flappy::hits_boundary(tuning, player) ||
                 flappy::hits_any_gate(tuning, player, field)) {
                 start_run();
                 break;
             }
+        }
+
+        if(score != shown_score) {
+            window.setTitle("FlappyAnimals - " + std::to_string(score));
+            shown_score = score;
         }
 
         window.clear(sf::Color(18, 22, 34));
