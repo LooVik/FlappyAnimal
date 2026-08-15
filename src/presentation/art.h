@@ -21,7 +21,7 @@ struct Art {
     static constexpr int kBirdFrame  = 16;   // x5 = 80 = player_width/height
     static constexpr int kFrameCount = 4;
     static constexpr int kPipeTileW  = 32;   // x5 = 160 = gate_width
-    static constexpr int kPipeTileH  = 48;
+    static constexpr int kPipeTileH  = 80;
     static constexpr int kBackground = 256;
 
     static constexpr float kPixelScale = 5.0f;

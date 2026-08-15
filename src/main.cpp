@@ -86,6 +86,7 @@ void draw_bird(sf::RenderTarget& target, const sf::Texture& texture,
 
 std::string status_line(const flappy::GameTuning& tuning, int score) {
     return "FlappyAnimals  " + std::to_string(score) +
+            "  bird "      + std::to_string(static_cast<int>(tuning.player_width)) +
            "   |  grav "  + std::to_string(static_cast<int>(tuning.gravity)) +
            "  flap "      + std::to_string(static_cast<int>(tuning.tap_impulse)) +
            "  fall "      + std::to_string(static_cast<int>(tuning.max_fall_speed)) +
@@ -165,6 +166,11 @@ int main() {
                     case K::D: tuning.scroll_speed   -=  20.0f; break;
                     case K::F: tuning.scroll_speed   +=  20.0f; break;
                     case K::T: tuning = flappy::GameTuning{};   break;  // defaults
+
+                    case K::C: tuning.player_width -= 16.0f;
+                               tuning.player_height -= 16.0f; break;
+                    case K::V: tuning.player_width += 16.0f;
+                               tuning.player_height += 16.0f; break;
                     default: break;
                 }
             } else if (event->is<sf::Event::MouseButtonPressed>()) {
