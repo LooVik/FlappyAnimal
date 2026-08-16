@@ -45,6 +45,7 @@ add_library(flappy_core
     src/gameplay/collision.cpp
     src/gameplay/scoring.cpp
     src/gameplay/difficulty.cpp
+    src/gameplay/medal.cpp
 )
 target_include_directories(flappy_core PUBLIC src)
 
@@ -58,6 +59,7 @@ add_executable(flappy_tests
     tests/test_collision.cpp
     tests/test_scoring.cpp
     tests/test_difficulty.cpp
+    tests/test_medal.cpp
 )
 target_link_libraries(flappy_tests PRIVATE flappy_core doctest::doctest)
 add_test(NAME flappy_tests COMMAND flappy_tests)
@@ -76,3 +78,10 @@ add_custom_command(TARGET flappy POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:flappy>/assets"
     VERBATIM)
+
+
+# Warning Flag
+if(MSVC)
+    target_compile_options(flappy_core PRIVATE /W4)
+    target_compile_options(flappy      PRIVATE /W4)
+endif()

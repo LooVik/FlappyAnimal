@@ -15,6 +15,7 @@
 #include "gameplay/tuning.h"
 #include "gameplay/scoring.h"
 #include "gameplay/difficulty.h"
+#include "gameplay/medal.h"
 
 #include "presentation/art.h"
 #include "presentation/audio.h"
@@ -112,6 +113,42 @@ void draw_text(sf::RenderTarget& target, const sf::Font& font, const std::string
     target.draw(text);
 }
 
+void draw_result(sf::RenderTarget& target, const flappy::Art& art, const flappy::GameTuning& tuning, int score, int best)
+{
+    const float cx = tuning.reference_width * 0.5f;
+    const float panel_w = 800.0f;
+    const float panel_h = 760.0f;
+    const float mid_y = tuning.reference_height * 0.46f;
+
+    sf::RectangleShape dim({tuning.reference_width, tuning.reference_height});
+    dim.setFillColor(sf::Color(10, 12, 20, 170));
+    target.draw(dim);
+
+    sf::RectangleShape panel({panel_w, panel_h});
+    panel.setOrigin({panel_w * 0.5f, panel_h *0.5f});
+    panel.setPosition({cx, mid_y});
+    panel.setFillColor(sf::Color(28, 34, 48, 235));
+    panel.setOutlineColor(sf::Color(240, 200, 90));
+    panel.setOutlineThickness(6.0f);
+    target.draw(panel);
+
+    const float top = mid_y - panel_h *0.5f;
+
+    draw_text(target, art.font, "GAME OVER", 56, cx, top + 90.0f);
+    draw_text(target, art.font, "SCORE", 32, cx, top + 230.0f);
+    draw_text(target, art.font, std::to_string(score), 72, cx, top + 305.0f);
+    draw_text(target, art.font, "BEST", 32, cx, top + 425.0f);
+    draw_text(target, art.font, std::to_string(best), 72, cx, top + 500.0f);
+
+    const flappy::Medal medal = flappy::medal_for_score(score);
+    if(medal != flappy::Medal::None)
+    {
+        draw_text(target, art.font, flappy::medal_name(medal), 40, cx, top + 610.0f);
+    }
+
+    draw_text(target, art.font, "TAP TO REPLAY", 28, cx, top + 659.0f);
+}
+
 // ===========================================================================
 // DEVELOPMENT TOOLING — TEMPORARY
 //
@@ -178,6 +215,7 @@ int main() {
     flappy::Screen screen = flappy::Screen::Ready;
     bool show_hitboxes = false;
     int score = 0;
+    int best = 0;
     float dead_timer = 0.0f;
     long long step_count = 0;
 
@@ -242,6 +280,10 @@ int main() {
                 dead_timer -= dt;
                 if(dead_timer <= 0.0f)
                 {
+                    if(score > best)
+                    {
+                        best = score;
+                    }
                     screen = flappy::Screen::Results;
                 }
                 continue;
@@ -325,6 +367,11 @@ int main() {
 
         if (show_hitboxes) {   // debug: press H
             draw_hitboxes(window, tuning, player, field);
+        }
+
+        if(screen == flappy::Screen::Results)
+        {
+            draw_result(window, art, tuning, score, best);
         }
 
         window.display();
