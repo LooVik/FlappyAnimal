@@ -30,8 +30,6 @@ struct Art {
     static constexpr int kPipeShaftSlice = 8;
     static constexpr int kBackground = 256;
 
-    static constexpr float kPixelScale = 5.0f;
-
     // Returns false and reports to stderr if any file is missing.
     bool load(const std::string& asset_dir);
 };

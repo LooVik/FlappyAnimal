@@ -106,3 +106,7 @@ docs/
 .superpowers/
 CLAUDE.md
 AGENTS.md
+
+# --- audio of unverified provenance: local testing only ------------------
+# Remove these lines once the files are replaced with CC0/licensed audio.
+assets/audio/*.mp3

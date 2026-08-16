@@ -66,8 +66,9 @@ add_test(NAME flappy_tests COMMAND flappy_tests)
 add_executable(flappy
     src/main.cpp
     src/presentation/art.cpp
+    src/presentation/audio.cpp
 )
-target_link_libraries(flappy PRIVATE flappy_core SFML::Graphics)
+target_link_libraries(flappy PRIVATE flappy_core SFML::Graphics SFML::Audio)
 
 # The game loads textures by relative path, so assets/ must sit beside the .exe.
 # Same reasoning as shipping a DLL: nothing is implicit outside the source tree.
