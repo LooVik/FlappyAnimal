@@ -7,12 +7,15 @@
 #include <cmath>
 
 #include "app/time_step.h"
+#include "app/screen.h"
+
 #include "gameplay/collision.h"
 #include "gameplay/gate_field.h"
 #include "gameplay/player.h"
 #include "gameplay/tuning.h"
 #include "gameplay/scoring.h"
 #include "gameplay/difficulty.h"
+
 #include "presentation/art.h"
 #include "presentation/audio.h"
 
@@ -172,8 +175,7 @@ int main() {
 
     flappy::Player player;
     flappy::GateField field;
-    bool flying = false;   // false = Ready, world frozen. Spec 4.4.
-    bool dead = false;
+    flappy::Screen screen = flappy::Screen::Ready;
     bool show_hitboxes = false;
     int score = 0;
     float dead_timer = 0.0f;
@@ -183,8 +185,7 @@ int main() {
         player   = flappy::Player{};
         player.y = tuning.reference_height * 0.5f;
         field.reset(kSeed);
-        flying   = false;
-        dead = false;
+        screen = flappy::Screen::Ready;
         dead_timer = 0.0f;
         score = 0;
     };
@@ -212,19 +213,23 @@ int main() {
         }
 
         if (tapped) {
-            if (dead)
-            {
-                if (dead_timer <= 0.0f)
-                {
-                    start_run();
-                }
-            }
-            else
-            {
-                flying = true;            // the first tap starts the run
-                player.flap(tuning);
-                audio.flap->play();
-            }
+           switch (screen)
+           {
+                case flappy::Screen::Ready : 
+                    screen = flappy::Screen::Playing;
+                    [[fallthrough]];
+
+                case flappy::Screen::Playing : 
+                    player.flap(tuning);
+                    audio.flap->play();
+                    break;
+
+                case flappy::Screen::Results: start_run();
+                break;
+
+                default: 
+                    break;
+           }
         }
 
         const double elapsed_seconds = static_cast<double>(frame_clock.restart().asMicroseconds()) / 1'000'000.0;
@@ -232,16 +237,20 @@ int main() {
 
         for (int i = 0, steps = timestep.accumulate(elapsed_seconds); i < steps; ++i) {
 
-            if (dead)
+            if(screen == flappy::Screen::Dying)
             {
                 dead_timer -= dt;
+                if(dead_timer <= 0.0f)
+                {
+                    screen = flappy::Screen::Results;
+                }
                 continue;
             }
 
-            if (!flying)
+            if(screen != flappy::Screen::Playing)
             {
                 break;
-            }       // Ready: nothing moves until you tap
+            }
 
             player.step(tuning, dt);
             field.step(tuning, dt, flappy::current_scroll_speed(tuning, score), flappy::current_gate_gap(tuning, score));
@@ -253,10 +262,11 @@ int main() {
                 audio.score->play();
             }
             score += gained;
-
+            
+            //collison between birds and pipe.
             if (flappy::hits_boundary(tuning, player) ||
                 flappy::hits_any_gate(tuning, player, field)) {
-                dead = true;
+                screen = flappy::Screen::Dying;
                 dead_timer = 0.2f;
                 audio.hit->play();
                 break;
@@ -286,7 +296,7 @@ int main() {
         // Gates move at a constant speed, so their offset is exact arithmetic.
         // The bird is accelerating, so its offset is a first-order estimate
         // from current velocity — which is what every engine does here.
-        const bool simulating = flying && !dead;
+        const bool simulating = (screen == flappy::Screen::Playing);
         const float alpha   = simulating ? static_cast<float>(timestep.alpha()) : 0.0f;
         const float gate_dx = -flappy::current_scroll_speed(tuning, score) * alpha * dt;
         const float bird_dy = player.velocity_y * alpha * dt;
@@ -299,18 +309,16 @@ int main() {
 
         // Nose up when rising, dive when falling — the whole tilt comes from
         // one number the physics already tracks.
-        const float tilt = std::clamp(player.velocity_y / tuning.max_fall_speed,
-                                      -1.0f, 1.0f) * 55.0f;
-        const int frame = static_cast<int>(
-            (step_count / kFramesPerBirdFrame) % flappy::Art::kFrameCount);
+        const float tilt = std::clamp(player.velocity_y / tuning.max_fall_speed, -1.0f, 1.0f) * 55.0f;
+        const int frame = static_cast<int>((step_count / kFramesPerBirdFrame) % flappy::Art::kFrameCount);
 
-        draw_bird(window, art.bird,
-                  nudged(flappy::player_sprite(tuning, player), 0.0f, bird_dy),
-                  dead ? 0 : frame, tilt);
+        const bool alive = (screen == flappy::Screen::Ready || screen == flappy::Screen::Playing);
+
+        draw_bird(window, art.bird, nudged(flappy::player_sprite(tuning, player), 0.0f, bird_dy), alive ? 0 : frame, tilt);
 
         draw_text(window, art.font, std::to_string(score), 96, tuning.reference_width * 0.5f, 220.0f);
 
-        if(!flying && !dead) 
+        if(screen == flappy::Screen::Ready)
         {
             draw_text(window, art.font, " TAP TO START", 48, tuning.reference_width * 0.5f, tuning.reference_height * 0.62f);
         }
