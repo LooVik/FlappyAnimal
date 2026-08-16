@@ -112,14 +112,8 @@ void draw_text(sf::RenderTarget& target, const sf::Font& font, const std::string
 // ===========================================================================
 // DEVELOPMENT TOOLING — TEMPORARY
 //
-// Everything from here to the end of status_line() exists only to make tuning
-// and debugging easier. Before shipping, delete this block plus its three call
-// sites in main(): the `default:` case in the key switch, the setTitle lines,
-// and the draw_hitboxes call.
-//
-// Keeping it in ONE labelled place is the whole point. Debug code scattered
-// through a file is code nobody dares remove, because nobody can tell what is
-// temporary and what is load-bearing.
+// The collision-box overlay, toggled with H. Before shipping, delete this
+// block and its one call site in main().
 // ===========================================================================
 
 sf::RectangleShape outlined(const flappy::Rect& r, sf::Color color) {
@@ -129,29 +123,6 @@ sf::RectangleShape outlined(const flappy::Rect& r, sf::Color color) {
     shape.setOutlineColor(color);
     shape.setOutlineThickness(-2.0f);   // negative draws inward
     return shape;
-}
-
-// Live tuning while the game runs, so a change can be felt instead of rebuilt.
-void apply_debug_key(flappy::GameTuning& tuning, sf::Keyboard::Key code) {
-    using K = sf::Keyboard::Key;
-    switch (code) {
-        case K::Q: tuning.gravity        -= 100.0f; break;
-        case K::W: tuning.gravity        += 100.0f; break;
-        case K::A: tuning.tap_impulse    +=  25.0f; break;  // weaker flap
-        case K::S: tuning.tap_impulse    -=  25.0f; break;  // stronger flap
-        case K::Z: tuning.max_fall_speed -=  50.0f; break;
-        case K::X: tuning.max_fall_speed +=  50.0f; break;
-        case K::E: tuning.gate_gap       -=  10.0f; break;
-        case K::R: tuning.gate_gap       +=  10.0f; break;
-        case K::D: tuning.scroll_speed   -=  20.0f; break;
-        case K::F: tuning.scroll_speed   +=  20.0f; break;
-        case K::T: tuning = flappy::GameTuning{};   break;  // back to defaults
-        case K::C: tuning.player_width  -= 16.0f;
-                   tuning.player_height -= 16.0f;   break;
-        case K::V: tuning.player_width  += 16.0f;
-                   tuning.player_height += 16.0f;   break;
-        default: break;
-    }
 }
 
 // The 80% collision bodies drawn over the art. Deliberately NOT interpolated:
@@ -169,22 +140,12 @@ void draw_hitboxes(sf::RenderTarget& target, const flappy::GameTuning& tuning,
                          sf::Color(255, 80, 80)));
 }
 
-std::string status_line(const flappy::GameTuning& tuning, int score) {
-    return "FlappyAnimals  " + std::to_string(score) +
-            "  bird "      + std::to_string(static_cast<int>(tuning.player_width)) +
-            "   |  grav "  + std::to_string(static_cast<int>(tuning.gravity)) +
-            "  flap "      + std::to_string(static_cast<int>(tuning.tap_impulse)) +
-            "  fall "      + std::to_string(static_cast<int>(tuning.max_fall_speed)) +
-            "  gap "       + std::to_string(static_cast<int>(tuning.gate_gap)) +
-            "  speed "     + std::to_string(static_cast<int>(tuning.scroll_speed));
-}
-
 }  // namespace
 
 int main() {
-    // NOT const: the tuning keys change these while the game runs so you can
-    // feel a change instead of rebuilding for it.
-    flappy::GameTuning tuning;
+    // const again now that nothing mutates it. The compiler will refuse any
+    // accidental write, which is exactly what you want from a config object.
+    const flappy::GameTuning tuning;
 
     flappy::Art art;
     if (!art.load("assets")) {
@@ -217,7 +178,6 @@ int main() {
     int score = 0;
     float dead_timer = 0.0f;
     long long step_count = 0;
-    std::string shown_status;
 
     auto start_run = [&] {
         player   = flappy::Player{};
@@ -243,8 +203,8 @@ int main() {
                 switch (key->code) {
                     case K::Space:  tapped = true;  break;
                     case K::Escape: window.close(); break;
-                    case K::H: show_hitboxes = !show_hitboxes; break;    // debug
-                    default: apply_debug_key(tuning, key->code); break;  // debug
+                    case K::H: show_hitboxes = !show_hitboxes; break;   // debug
+                    default: break;
                 }
             } else if (event->is<sf::Event::MouseButtonPressed>()) {
                 tapped = true;
@@ -301,12 +261,6 @@ int main() {
                 audio.hit->play();
                 break;
             }
-        }
-
-        const std::string status = status_line(tuning, score);
-        if (status != shown_status) {
-            window.setTitle(status);
-            shown_status = status;
         }
 
         // ---- draw ----------------------------------------------------------
