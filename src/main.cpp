@@ -8,6 +8,7 @@
 
 #include "app/time_step.h"
 #include "app/screen.h"
+#include "app/run.h"
 
 #include "gameplay/collision.h"
 #include "gameplay/gate_field.h"
@@ -210,24 +211,11 @@ int main() {
     flappy::FixedTimestep timestep;
     sf::Clock frame_clock;
 
-    flappy::Player player;
-    flappy::GateField field;
-    flappy::Screen screen = flappy::Screen::Ready;
-    bool show_hitboxes = false;
-    int score = 0;
-    int best = 0;
-    float dead_timer = 0.0f;
-    long long step_count = 0;
+    flappy::Run run;
+    run.reset(tuning, kSeed);
 
-    auto start_run = [&] {
-        player   = flappy::Player{};
-        player.y = tuning.reference_height * 0.5f;
-        field.reset(kSeed);
-        screen = flappy::Screen::Ready;
-        dead_timer = 0.0f;
-        score = 0;
-    };
-    start_run();
+    int  best          = 0;      // spans runs, so it is not part of Run
+    bool show_hitboxes = false;  // debug
 
     while (window.isOpen()) {
         bool tapped = false;
@@ -251,18 +239,18 @@ int main() {
         }
 
         if (tapped) {
-           switch (screen)
+           switch (run.screen)
            {
                 case flappy::Screen::Ready : 
-                    screen = flappy::Screen::Playing;
+                    run.screen = flappy::Screen::Playing;
                     [[fallthrough]];
 
                 case flappy::Screen::Playing : 
-                    player.flap(tuning);
+                    run.player.flap(tuning);
                     audio.flap->play();
                     break;
 
-                case flappy::Screen::Results: start_run();
+                case flappy::Screen::Results: run.reset(tuning, kSeed);
                 break;
 
                 default: 
@@ -275,41 +263,41 @@ int main() {
 
         for (int i = 0, steps = timestep.accumulate(elapsed_seconds); i < steps; ++i) {
 
-            if(screen == flappy::Screen::Dying)
+            if(run.screen == flappy::Screen::Dying)
             {
-                dead_timer -= dt;
-                if(dead_timer <= 0.0f)
+                run.dead_timer -= dt;
+                if(run.dead_timer <= 0.0f)
                 {
-                    if(score > best)
+                    if(run.score > best)
                     {
-                        best = score;
+                        best = run.score;
                     }
-                    screen = flappy::Screen::Results;
+                    run.screen = flappy::Screen::Results;
                 }
                 continue;
             }
 
-            if(screen != flappy::Screen::Playing)
+            if(run.screen != flappy::Screen::Playing)
             {
                 break;
             }
 
-            player.step(tuning, dt);
-            field.step(tuning, dt, flappy::current_scroll_speed(tuning, score), flappy::current_gate_gap(tuning, score));
-            ++step_count;   // drives the bird's animation frame
+            run.player.step(tuning, dt);
+            run.field.step(tuning, dt, flappy::current_scroll_speed(tuning, run.score), flappy::current_gate_gap(tuning, run.score));
+            ++run.step_count;   // drives the bird's animation frame
 
-            const int gained = flappy::score_passed_gates(tuning, field);
+            const int gained = flappy::score_passed_gates(tuning, run.field);
             if(gained > 0 )
             {
                 audio.score->play();
             }
-            score += gained;
+            run.score += gained;
             
             //collison between birds and pipe.
-            if (flappy::hits_boundary(tuning, player) ||
-                flappy::hits_any_gate(tuning, player, field)) {
-                screen = flappy::Screen::Dying;
-                dead_timer = 0.2f;
+            if (flappy::hits_boundary(tuning, run.player) ||
+                flappy::hits_any_gate(tuning, run.player, run.field)) {
+                run.screen = flappy::Screen::Dying;
+                run.dead_timer = 0.2f;
                 audio.hit->play();
                 break;
             }
@@ -338,12 +326,12 @@ int main() {
         // Gates move at a constant speed, so their offset is exact arithmetic.
         // The bird is accelerating, so its offset is a first-order estimate
         // from current velocity — which is what every engine does here.
-        const bool simulating = (screen == flappy::Screen::Playing);
+        const bool simulating = (run.screen == flappy::Screen::Playing);
         const float alpha   = simulating ? static_cast<float>(timestep.alpha()) : 0.0f;
-        const float gate_dx = -flappy::current_scroll_speed(tuning, score) * alpha * dt;
-        const float bird_dy = player.velocity_y * alpha * dt;
+        const float gate_dx = -flappy::current_scroll_speed(tuning, run.score) * alpha * dt;
+        const float bird_dy = run.player.velocity_y * alpha * dt;
 
-        for (const flappy::Gate& gate : field.gates) {
+        for (const flappy::Gate& gate : run.field.gates) {
             if (!gate.active) continue;
             draw_pipe(window, art, nudged(flappy::gate_top_body(tuning, gate), gate_dx, 0.0f), true);
             draw_pipe(window, art, nudged(flappy::gate_bottom_body(tuning, gate), gate_dx, 0.0f), false);
@@ -351,27 +339,27 @@ int main() {
 
         // Nose up when rising, dive when falling — the whole tilt comes from
         // one number the physics already tracks.
-        const float tilt = std::clamp(player.velocity_y / tuning.max_fall_speed, -1.0f, 1.0f) * 55.0f;
-        const int frame = static_cast<int>((step_count / kFramesPerBirdFrame) % flappy::Art::kFrameCount);
+        const float tilt = std::clamp(run.player.velocity_y / tuning.max_fall_speed, -1.0f, 1.0f) * 55.0f;
+        const int frame = static_cast<int>((run.step_count / kFramesPerBirdFrame) % flappy::Art::kFrameCount);
 
-        const bool alive = (screen == flappy::Screen::Ready || screen == flappy::Screen::Playing);
+        const bool alive = (run.screen == flappy::Screen::Ready || run.screen == flappy::Screen::Playing);
 
-        draw_bird(window, art.bird, nudged(flappy::player_sprite(tuning, player), 0.0f, bird_dy), alive ? 0 : frame, tilt);
+        draw_bird(window, art.bird, nudged(flappy::player_sprite(tuning, run.player), 0.0f, bird_dy), alive ? frame : 0, tilt);
 
-        draw_text(window, art.font, std::to_string(score), 96, tuning.reference_width * 0.5f, 220.0f);
+        draw_text(window, art.font, std::to_string(run.score), 96, tuning.reference_width * 0.5f, 220.0f);
 
-        if(screen == flappy::Screen::Ready)
+        if(run.screen == flappy::Screen::Ready)
         {
             draw_text(window, art.font, " TAP TO START", 48, tuning.reference_width * 0.5f, tuning.reference_height * 0.62f);
         }
 
         if (show_hitboxes) {   // debug: press H
-            draw_hitboxes(window, tuning, player, field);
+            draw_hitboxes(window, tuning, run.player, run.field);
         }
 
-        if(screen == flappy::Screen::Results)
+        if(run.screen == flappy::Screen::Results)
         {
-            draw_result(window, art, tuning, score, best);
+            draw_result(window, art, tuning, run.score, best);
         }
 
         window.display();
