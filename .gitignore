@@ -110,3 +110,7 @@ AGENTS.md
 # --- audio of unverified provenance: local testing only ------------------
 # Remove these lines once the files are replaced with CC0/licensed audio.
 assets/audio/*.mp3
+
+# Player data, not source.
+profile.txt
+profile.txt.tmp

@@ -17,6 +17,29 @@ bool load_pixel(sf::Texture& texture, const std::string& path, bool repeating, c
     return true;
 }
 
+// The opposite rule to load_pixel, and worth understanding rather than copying.
+//
+// The bird and pipes are pixel art: a 16x16 image blown up 6x, where every
+// source pixel must stay a hard square. Smoothing there is blur.
+//
+// These buttons are not pixel art. They are smooth gradients and rounded
+// corners drawn at 415x111, and we display them at roughly 1.5x. Turning
+// smoothing OFF would make those curves stair-step. Same engine, same call,
+// opposite correct answer — it depends on what the artwork IS.
+bool load_smooth(sf::Texture& texture, const std::string& path) {
+    if (!texture.loadFromFile(path)) {
+        std::cerr << "art: failed to load " << path << '\n';
+        return false;
+    }
+    texture.setSmooth(true);
+    return true;
+}
+
+bool load_button(ButtonSkin& skin, const std::string& asset_dir, const std::string& name) {
+    return load_smooth(skin.normal,  asset_dir + "/ui/button_" + name + ".png")
+        && load_smooth(skin.pressed, asset_dir + "/ui/button_" + name + "_pressed.png");
+}
+
 }  // namespace
 
 bool Art::load(const std::string& asset_dir) {
@@ -45,7 +68,13 @@ bool Art::load(const std::string& asset_dir) {
         return false;
     }
 
-    if(!font.openFromFile(asset_dir + "/fonts/PressStart2P-Regular.ttf")) 
+    if (!load_button(button_green, asset_dir, "green") ||
+        !load_button(button_blue,  asset_dir, "blue")  ||
+        !load_button(button_red,   asset_dir, "red")) {
+        return false;
+    }
+
+    if(!font.openFromFile(asset_dir + "/fonts/PressStart2P-Regular.ttf"))
     {
         std::cerr << "art: failed to load fonts\n";
         return false;

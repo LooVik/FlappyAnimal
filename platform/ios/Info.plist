@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    The Info.plist is iOS's manifest — the exact counterpart of
+    platform/android/app/src/main/AndroidManifest.xml. iOS reads it before a
+    single line of our code runs, so anything it gets wrong cannot be fixed
+    later at runtime.
+
+    Two keys here are load-bearing and easy to get wrong:
+
+      UILaunchStoryboardName  Without a launch storyboard iOS decides the app
+                              was written for an old, small iPhone and runs it
+                              in compatibility mode: a 320x480 canvas stretched
+                              over the whole screen, blurry and wrongly sized.
+                              The storyboard is what tells iOS "this app knows
+                              about modern screens, give it all the pixels."
+
+      UIRequiresFullScreen    Stops iPad from offering Split View, which would
+                              resize the window mid-run. Our letterbox handles
+                              resizes, but a phone game has no business being
+                              a third of an iPad screen.
+-->
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+
+    <!-- Xcode substitutes these at build time; do not hard-code the name. -->
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
+    <!-- The name under the icon on the home screen. -->
+    <key>CFBundleDisplayName</key>
+    <string>FlappyAnimals</string>
+
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <!-- ShortVersionString is what users see. Version is the build number and
+         must increase with every upload to App Store Connect. -->
+    <key>CFBundleShortVersionString</key>
+    <string>0.1</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+
+    <!-- Metal is not used, but every device since the iPhone 5s has arm64 and
+         listing it keeps the app off 32-bit hardware that cannot run it. -->
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+
+    <!-- Portrait only, matching android:screenOrientation="portrait". -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UIRequiresFullScreen</key>
+    <true/>
+
+    <!-- No status bar over the play area. The second key stops UIKit from
+         asking a view controller we do not own what the status bar should
+         look like, which would override the first. -->
+    <key>UIStatusBarHidden</key>
+    <true/>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+</dict>
+</plist>

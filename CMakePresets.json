@@ -19,16 +19,64 @@
       "displayName": "Windows Release (MSVC + Ninja)",
       "binaryDir": "${sourceDir}/build/windows-release",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "macOS Debug (Clang + Ninja)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/macos-debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "ios-device",
+      "displayName": "iOS Device (Xcode)",
+      "description": "Generates build/ios-device/FlappyAnimals.xcodeproj. Open it in Xcode, pick your iPhone, press Run.",
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/build/ios-device",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "iOS",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.0",
+        "FLAPPY_IOS_TEAM_ID": ""
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "ios-simulator",
+      "inherits": "ios-device",
+      "displayName": "iOS Simulator (Xcode)",
+      "description": "Same project, built for the Simulator. No Apple ID or code signing needed.",
+      "binaryDir": "${sourceDir}/build/ios-simulator",
+      "cacheVariables": {
+        "CMAKE_OSX_SYSROOT": "iphonesimulator"
+      }
     }
   ],
   "buildPresets": [
     { "name": "windows-debug",   "configurePreset": "windows-debug" },
-    { "name": "windows-release", "configurePreset": "windows-release" }
+    { "name": "windows-release", "configurePreset": "windows-release" },
+    { "name": "macos-debug",     "configurePreset": "macos-debug" },
+    { "name": "ios-device",      "configurePreset": "ios-device" },
+    { "name": "ios-simulator",   "configurePreset": "ios-simulator" }
   ],
   "testPresets": [
     {
       "name": "windows-debug",
       "configurePreset": "windows-debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "macos-debug",
+      "configurePreset": "macos-debug",
       "output": { "outputOnFailure": true }
     }
   ]

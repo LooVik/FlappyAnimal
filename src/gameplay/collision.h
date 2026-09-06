@@ -1,16 +1,11 @@
 #pragma once
 
+#include "core/rect.h"
 #include "gameplay/gate_field.h"
 #include "gameplay/player.h"
 #include "gameplay/tuning.h"
 
 namespace flappy {
-    struct Rect {
-        float x = 0.0f;
-        float y = 0.0f;
-        float w = 0.0f;
-        float h = 0.0f;
-    };
 
     bool overlaps(const Rect& a, const Rect& b);
 

@@ -1,9 +1,10 @@
-#pragma once 
+#pragma once
 
 namespace flappy {
-    enum class Screen 
+    enum class Screen
     {
-        Ready,
+        Home,         // title, PLAY and LEADERBOARD — nothing is simulating
+        Ready,        // bird placed, waiting for the first tap
         Playing,
         Dying,
         Results,
